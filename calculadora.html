@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calculadora Básica</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:       #0d0f14;
+      --panel:    #13161e;
+      --surface:  #1c2030;
+      --accent:   #00e5ff;
+      --accent2:  #ff4081;
+      --op-color: #ff9800;
+      --text:     #e8eaf6;
+      --muted:    #546e7a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(0,229,255,.07) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(255,64,129,.06) 0%, transparent 60%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Exo 2', sans-serif;
+    }
+
+    #calculadora {
+      width: 320px;
+      background: var(--panel);
+      border-radius: 20px;
+      padding: 24px 20px 20px;
+      box-shadow:
+        0 30px 60px rgba(0,0,0,.6),
+        0 0 0 1px rgba(255,255,255,.04),
+        inset 0 1px 0 rgba(255,255,255,.06);
+    }
+
+    h1 {
+      font-family: 'Exo 2', sans-serif;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    /* ── PANTALLA ── */
+    #pantalla {
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 14px 16px 10px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(255,255,255,.06);
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+
+    #operacion {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: .85rem;
+      color: var(--muted);
+      min-height: 1.2em;
+      word-break: break-all;
+      text-align: right;
+    }
+
+    #resultado {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 2.2rem;
+      color: var(--text);
+      line-height: 1.1;
+      word-break: break-all;
+      transition: color .15s;
+    }
+
+    #resultado.flash { color: var(--accent); }
+
+    /* ── BOTONES ── */
+    .botones {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      font-family: 'Exo 2', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      height: 62px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.06);
+      transition: transform .1s, background .15s, box-shadow .15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button:hover  { background: #232740; }
+    button:active { transform: scale(.94); }
+
+    /* Operadores */
+    .btn-op {
+      background: rgba(255,152,0,.12);
+      color: var(--op-color);
+      border-color: rgba(255,152,0,.2);
+    }
+    .btn-op:hover { background: rgba(255,152,0,.22); }
+
+    /* Igual */
+    .btn-eq {
+      background: var(--accent);
+      color: #0d0f14;
+      border-color: var(--accent);
+      box-shadow: 0 0 18px rgba(0,229,255,.3);
+    }
+    .btn-eq:hover { background: #33eaff; box-shadow: 0 0 26px rgba(0,229,255,.45); }
+
+    /* Limpiar */
+    .btn-clear {
+      background: rgba(255,64,129,.12);
+      color: var(--accent2);
+      border-color: rgba(255,64,129,.2);
+    }
+    .btn-clear:hover { background: rgba(255,64,129,.22); }
+
+    /* Especiales (±, %) */
+    .btn-special {
+      background: rgba(84,110,122,.2);
+      color: #90a4ae;
+      border-color: rgba(84,110,122,.2);
+    }
+    .btn-special:hover { background: rgba(84,110,122,.35); }
+
+    /* Cero ocupa 2 columnas */
+    .btn-zero { grid-column: span 2; }
+
+    /* Ripple */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple-anim .45s linear;
+      background: rgba(255,255,255,.18);
+      pointer-events: none;
+    }
+    @keyframes ripple-anim {
+      to { transform: scale(4); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="calculadora">
+  <h1>Calculadora Básica</h1>
+
+  <div id="pantalla">
+    <div id="operacion"></div>
+    <div id="resultado">0</div>
+  </div>
+
+  <div class="botones">
+    <!-- Fila 1 -->
+    <button class="btn-clear"   onclick="limpiar()">C</button>
+    <button class="btn-special" onclick="toggleSigno()">±</button>
+    <button class="btn-special" onclick="porcentaje()">%</button>
+    <button class="btn-op"      onclick="seleccionarOperacion('/')">÷</button>
+
+    <!-- Fila 2 -->
+    <button onclick="ingresarNumero('7')">7</button>
+    <button onclick="ingresarNumero('8')">8</button>
+    <button onclick="ingresarNumero('9')">9</button>
+    <button class="btn-op" onclick="seleccionarOperacion('*')">×</button>
+
+    <!-- Fila 3 -->
+    <button onclick="ingresarNumero('4')">4</button>
+    <button onclick="ingresarNumero('5')">5</button>
+    <button onclick="ingresarNumero('6')">6</button>
+    <button class="btn-op" onclick="seleccionarOperacion('-')">−</button>
+
+    <!-- Fila 4 -->
+    <button onclick="ingresarNumero('1')">1</button>
+    <button onclick="ingresarNumero('2')">2</button>
+    <button onclick="ingresarNumero('3')">3</button>
+    <button class="btn-op" onclick="seleccionarOperacion('+')">+</button>
+
+    <!-- Fila 5 -->
+    <button class="btn-zero" onclick="ingresarNumero('0')">0</button>
+    <button onclick="ingresarNumero('.')">.</button>
+    <button class="btn-eq" onclick="calcular()">=</button>
+  </div>
+</div>
+
+<script>
+  const pantallaResultado = document.getElementById('resultado');
+  const pantallaOperacion = document.getElementById('operacion');
+
+  let primerOperando   = null;
+  let operacion        = null;
+  let esperandoSegundo = false;
+  let resultadoMostrado = false;
+
+  /* ── Actualizar pantalla ── */
+  function actualizarPantalla(valor) {
+    pantallaResultado.textContent = valor;
+  }
+
+  /* ── Formatear números largos ── */
+  function formatear(num) {
+    if (!isFinite(num)) return 'Error';
+    const s = parseFloat(num.toPrecision(10)).toString();
+    return s.length > 12 ? parseFloat(num.toExponential(4)).toString() : s;
+  }
+
+  /* ── Ingresar dígito ── */
+  function ingresarNumero(digito) {
+    const actual = pantallaResultado.textContent;
+
+    if (resultadoMostrado && digito !== '.') {
+      actualizarPantalla(digito === '.' ? '0.' : digito);
+      resultadoMostrado = false;
+      return;
+    }
+
+    if (esperandoSegundo) {
+      actualizarPantalla(digito === '.' ? '0.' : digito);
+      esperandoSegundo = false;
+      return;
+    }
+
+    if (digito === '.' && actual.includes('.')) return;
+    if (actual.replace('-','').replace('.','').length >= 12) return;
+
+    actualizarPantalla(actual === '0' && digito !== '.' ? digito : actual + digito);
+  }
+
+  /* ── Seleccionar operación ── */
+  function seleccionarOperacion(op) {
+    const actual = parseFloat(pantallaResultado.textContent);
+
+    if (operacion && !esperandoSegundo) {
+      const res = realizar(primerOperando, actual, operacion);
+      actualizarPantalla(formatear(res));
+      primerOperando = res;
+    } else {
+      primerOperando = actual;
+    }
+
+    operacion = op;
+    esperandoSegundo  = true;
+    resultadoMostrado = false;
+
+    const simbolo = { '+':'+', '-':'−', '*':'×', '/':'÷' }[op];
+    pantallaOperacion.textContent = formatear(primerOperando) + ' ' + simbolo;
+  }
+
+  /* ── Realizar operación ── */
+  function realizar(a, b, op) {
+    switch (op) {
+      case '+': return a + b;
+      case '-': return a - b;
+      case '*': return a * b;
+      case '/': return b === 0 ? Infinity : a / b;
+    }
+  }
+
+  /* ── Calcular resultado ── */
+  function calcular() {
+    if (!operacion || esperandoSegundo) return;
+    const b = parseFloat(pantallaResultado.textContent);
+    const resultado = realizar(primerOperando, b, operacion);
+    const simbolo = { '+':'+', '-':'−', '*':'×', '/':'÷' }[operacion];
+    pantallaOperacion.textContent =
+      formatear(primerOperando) + ' ' + simbolo + ' ' + formatear(b) + ' =';
+    actualizarPantalla(formatear(resultado));
+
+    /* Efecto flash */
+    pantallaResultado.classList.add('flash');
+    setTimeout(() => pantallaResultado.classList.remove('flash'), 300);
+
+    primerOperando    = null;
+    operacion         = null;
+    esperandoSegundo  = false;
+    resultadoMostrado = true;
+  }
+
+  /* ── Limpiar ── */
+  function limpiar() {
+    actualizarPantalla('0');
+    pantallaOperacion.textContent = '';
+    primerOperando    = null;
+    operacion         = null;
+    esperandoSegundo  = false;
+    resultadoMostrado = false;
+  }
+
+  /* ── Cambiar signo ── */
+  function toggleSigno() {
+    const v = parseFloat(pantallaResultado.textContent);
+    if (!isNaN(v) && v !== 0) actualizarPantalla(formatear(-v));
+  }
+
+  /* ── Porcentaje ── */
+  function porcentaje() {
+    const v = parseFloat(pantallaResultado.textContent);
+    if (!isNaN(v)) actualizarPantalla(formatear(v / 100));
+  }
+
+  /* ── Efecto ripple ── */
+  document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      const r = document.createElement('span');
+      r.className = 'ripple';
+      const rect = btn.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      r.style.cssText = `width:${size}px;height:${size}px;
+        left:${e.clientX-rect.left-size/2}px;
+        top:${e.clientY-rect.top-size/2}px`;
+      btn.appendChild(r);
+      setTimeout(() => r.remove(), 450);
+    });
+  });
+
+  /* ── Soporte teclado ── */
+  document.addEventListener('keydown', e => {
+    if ('0123456789.'.includes(e.key)) ingresarNumero(e.key);
+    else if (e.key === '+') seleccionarOperacion('+');
+    else if (e.key === '-') seleccionarOperacion('-');
+    else if (e.key === '*') seleccionarOperacion('*');
+    else if (e.key === '/') { e.preventDefault(); seleccionarOperacion('/'); }
+    else if (e.key === 'Enter' || e.key === '=') calcular();
+    else if (e.key === 'Escape') limpiar();
+    else if (e.key === '%') porcentaje();
+  });
+</script>
+</body>
+</html>
